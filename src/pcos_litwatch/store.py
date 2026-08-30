@@ -178,6 +178,39 @@ def untagged_sources(conn, tagger: str, limit: int = 25) -> list[dict[str, Any]]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
+def untagged_for_qwen(conn, tagger: str = "qwen3.8-27b", limit: int = 40) -> list[dict[str, Any]]:
+    """Rows Qwen should see: no Qwen tag, no heuristic skip, need-linked and RCT-ish first."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT s.id, s.source_type, s.external_id, s.title,
+                   left(coalesce(s.abstract, ''), 400) AS abstract,
+                   s.url, s.published_on
+            FROM pcos.sources s
+            LEFT JOIN pcos.source_tags q
+              ON q.source_id = s.id AND q.tagger = %s
+            LEFT JOIN pcos.source_tags h
+              ON h.source_id = s.id AND h.tagger = 'heuristic'
+            WHERE q.id IS NULL AND h.id IS NULL
+            ORDER BY
+              EXISTS (
+                SELECT 1 FROM pcos.need_sources ns WHERE ns.source_id = s.id
+              ) DESC,
+              CASE
+                WHEN s.title ~* 'randomiz|randomis|clinical trial|meta-analy|double[- ]blind'
+                  THEN 0
+                ELSE 1
+              END,
+              s.published_on DESC NULLS LAST,
+              s.id DESC
+            LIMIT %s
+            """,
+            (tagger, limit),
+        )
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
 def insert_tag(
     conn,
     source_id: int,
