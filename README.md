@@ -2,20 +2,17 @@
 
 Stdlib Python collector for a long-running PCOS literature watch.
 
-It pulls recent records from PubMed E-utilities, ClinicalTrials.gov v2, and arXiv. It does **not** diagnose, treat, or claim a cure. The optional Postgres sink is for a research ledger, not a medical record.
+It pulls records from PubMed E-utilities, ClinicalTrials.gov v2, and arXiv. It paginates PubMed so a ledger can grow into the tens of thousands. It does **not** diagnose, treat, or claim a cure. The optional Postgres sink is a research ledger, not a medical record.
 
-This repo is the public, testable core. The Hermes jobs that tag novelty (local Qwen) and write briefs (Grok) live next to it, not inside it.
+This repo is the public, testable core. Hermes jobs that tag novelty (local Qwen) and write briefs (Grok) live next to it.
 
-## Why this exists
+## Split of labor
 
-PCOS (also discussed as polyendocrine metabolic ovarian syndrome / PMOS) is common, heterogeneous, and still without a disease-modifying cure. A durable search needs:
+1. **Undergrads (scripts)** walk PubMed by cursor and fill professor `needs` (tight MeSH queries).
+2. **Qwen** tags novelty as JSON. It does not brief.
+3. **Grok** reads, cites, files new needs when the ledger is too thin to answer a load-bearing question.
 
-1. A collector that does not invent papers.
-2. A store that remembers what was already seen.
-3. A cheap model that only tags "is this new / on-mechanism".
-4. A strong model that actually reads.
-
-Most days this pipeline will find nothing that changes the map. That is the expected result.
+Most days nothing changes the "no established cure" map. That is expected.
 
 ## Install
 
@@ -30,7 +27,7 @@ Live collect (no database):
 python -m pcos_litwatch.cli --pubmed 10 --trials 5 --arxiv 5
 ```
 
-Optional Postgres (`CREATE SCHEMA` from `schema/001_init.sql` first):
+Optional Postgres (`schema/001_init.sql` then `schema/002_needs.sql`):
 
 ```bash
 export HERMES_DATABASE_URL=postgresql://user:pass@127.0.0.1:5432/db
@@ -49,8 +46,8 @@ python -m pcos_litwatch.cli --store --quiet
 ## Layout
 
 ```
-src/pcos_litwatch/   collector, parsers, optional store
-schema/001_init.sql  ledger tables
+src/pcos_litwatch/   collector, parsers, backfill cursor, optional store
+schema/              001_init.sql + 002_needs.sql
 tests/               fixture parsers, no network in CI
 ```
 

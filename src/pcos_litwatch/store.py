@@ -218,3 +218,141 @@ def insert_tag(
             ),
         )
     conn.commit()
+
+
+def get_cursor(conn, query_key: str) -> dict[str, Any] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT query_key, term, retstart, page_size, total_reported, exhausted, last_run_at
+            FROM pcos.backfill_cursors WHERE query_key = %s
+            """,
+            (query_key,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        cols = [d[0] for d in cur.description]
+        return dict(zip(cols, row))
+
+
+def set_cursor(
+    conn,
+    query_key: str,
+    term: str,
+    retstart: int,
+    page_size: int,
+    total_reported: int | None,
+    exhausted: bool,
+) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO pcos.backfill_cursors (
+                query_key, term, retstart, page_size, total_reported, exhausted, last_run_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, now())
+            ON CONFLICT (query_key) DO UPDATE SET
+                term = EXCLUDED.term,
+                retstart = EXCLUDED.retstart,
+                page_size = EXCLUDED.page_size,
+                total_reported = EXCLUDED.total_reported,
+                exhausted = EXCLUDED.exhausted,
+                last_run_at = now()
+            """,
+            (query_key, term, retstart, page_size, total_reported, exhausted),
+        )
+    conn.commit()
+
+
+def upsert_need(
+    conn,
+    need_key: str,
+    title: str,
+    why: str,
+    pubmed_term: str,
+    hypothesis_area: str | None = None,
+    priority: int = 50,
+    evidence_wanted: str | None = None,
+    notes: str | None = None,
+    filed_by: str = "grok-4.6",
+) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO pcos.needs (
+                need_key, title, why, pubmed_term, hypothesis_area, priority,
+                evidence_wanted, notes, filed_by, status
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'open')
+            ON CONFLICT (need_key) DO UPDATE SET
+                title = EXCLUDED.title,
+                why = EXCLUDED.why,
+                pubmed_term = EXCLUDED.pubmed_term,
+                hypothesis_area = COALESCE(EXCLUDED.hypothesis_area, pcos.needs.hypothesis_area),
+                priority = EXCLUDED.priority,
+                evidence_wanted = COALESCE(EXCLUDED.evidence_wanted, pcos.needs.evidence_wanted),
+                notes = COALESCE(EXCLUDED.notes, pcos.needs.notes),
+                updated_at = now(),
+                status = CASE
+                    WHEN pcos.needs.status IN ('filled', 'dropped') THEN pcos.needs.status
+                    ELSE 'open'
+                END
+            RETURNING id
+            """,
+            (
+                need_key,
+                title,
+                why,
+                pubmed_term,
+                hypothesis_area,
+                priority,
+                evidence_wanted,
+                notes,
+                filed_by,
+            ),
+        )
+        nid = int(cur.fetchone()[0])
+    conn.commit()
+    return nid
+
+
+def open_needs(conn, limit: int = 5) -> list[dict[str, Any]]:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, need_key, title, why, pubmed_term, hypothesis_area, priority, status,
+                   evidence_wanted
+            FROM pcos.needs
+            WHERE status IN ('open', 'filling')
+            ORDER BY priority DESC, id
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def link_need_source(cur, need_id: int, source_id: int) -> None:
+    cur.execute(
+        """
+        INSERT INTO pcos.need_sources (need_id, source_id)
+        VALUES (%s, %s)
+        ON CONFLICT DO NOTHING
+        """,
+        (need_id, source_id),
+    )
+
+
+def mark_need_filled(conn, need_id: int) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE pcos.needs
+            SET status = 'filled', last_filled_at = now(), updated_at = now()
+            WHERE id = %s
+            """,
+            (need_id,),
+        )
+    conn.commit()

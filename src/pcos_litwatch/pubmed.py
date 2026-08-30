@@ -95,30 +95,76 @@ def _month_to_num(m: str) -> int:
     return months.get(m[:3].lower(), 1)
 
 
-def esearch_ids(term: str, retmax: int = 40) -> list[str]:
+def parse_esearch(data: dict) -> dict:
+    """Pull idlist + count from an E-utilities esearch JSON body."""
+    result = data.get("esearchresult") or {}
+    ids = [str(x) for x in (result.get("idlist") or [])]
+    try:
+        count = int(result.get("count") or 0)
+    except (TypeError, ValueError):
+        count = 0
+    try:
+        retstart = int(result.get("retstart") or 0)
+    except (TypeError, ValueError):
+        retstart = 0
+    return {"ids": ids, "count": count, "retstart": retstart}
+
+
+def esearch_page(term: str, retstart: int = 0, retmax: int = 40) -> dict:
     q = encode_query(
         {
             "db": "pubmed",
             "retmode": "json",
             "retmax": str(retmax),
+            "retstart": str(retstart),
             "sort": "pub date",
             "term": term,
         }
     )
     data = get_json(f"{EUTILS}/esearch.fcgi?{q}")
-    return list(data.get("esearchresult", {}).get("idlist", []))
+    parsed = parse_esearch(data)
+    parsed["term"] = term
+    parsed["retmax"] = retmax
+    return parsed
 
 
-def efetch(pmids: Iterable[str]) -> list[Record]:
+def esearch_ids(term: str, retmax: int = 40) -> list[str]:
+    return esearch_page(term, retstart=0, retmax=retmax)["ids"]
+
+
+def efetch(pmids: Iterable[str], batch_size: int = 50) -> list[Record]:
     ids = [p for p in pmids if p]
     if not ids:
         return []
-    q = encode_query({"db": "pubmed", "retmode": "xml", "id": ",".join(ids)})
-    xml_bytes = get_bytes(f"{EUTILS}/efetch.fcgi?{q}")
-    return parse_pubmed_xml(xml_bytes)
+    out: list[Record] = []
+    for i in range(0, len(ids), batch_size):
+        chunk = ids[i : i + batch_size]
+        q = encode_query({"db": "pubmed", "retmode": "xml", "id": ",".join(chunk)})
+        xml_bytes = get_bytes(f"{EUTILS}/efetch.fcgi?{q}")
+        out.extend(parse_pubmed_xml(xml_bytes))
+        if i + batch_size < len(ids):
+            sleep_polite(0.4)
+    return out
 
 
-def fetch_pubmed(term: str = DEFAULT_TERM, retmax: int = 40) -> list[Record]:
-    ids = esearch_ids(term, retmax=retmax)
+def fetch_pubmed(term: str = DEFAULT_TERM, retmax: int = 40, retstart: int = 0) -> list[Record]:
+    page = esearch_page(term, retstart=retstart, retmax=retmax)
     sleep_polite(0.4)
-    return efetch(ids)
+    return efetch(page["ids"])
+
+
+def fetch_pubmed_page(term: str = DEFAULT_TERM, retstart: int = 0, retmax: int = 200) -> dict:
+    """One cursor page: records plus NCBI's total so a backfill can walk the corpus."""
+    page = esearch_page(term, retstart=retstart, retmax=retmax)
+    sleep_polite(0.4)
+    records = efetch(page["ids"])
+    next_start = retstart + len(page["ids"])
+    exhausted = (not page["ids"]) or next_start >= page["count"]
+    return {
+        "records": records,
+        "ids": page["ids"],
+        "count": page["count"],
+        "retstart": retstart,
+        "next_start": next_start,
+        "exhausted": exhausted,
+    }
