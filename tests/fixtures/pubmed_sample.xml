@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>37580314</PMID>
+      <Article>
+        <Journal>
+          <Title>The Journal of Clinical Endocrinology and Metabolism</Title>
+          <JournalIssue>
+            <PubDate>
+              <Year>2023</Year>
+              <Month>Oct</Month>
+              <Day>18</Day>
+            </PubDate>
+          </JournalIssue>
+        </Journal>
+        <ArticleTitle>Recommendations from the 2023 international evidence-based guideline for the assessment and management of polycystic ovary syndrome.</ArticleTitle>
+        <Abstract>
+          <AbstractText>This guideline covers assessment and management of PCOS. It does not describe a cure.</AbstractText>
+        </Abstract>
+        <AuthorList>
+          <Author>
+            <LastName>Teede</LastName>
+            <Initials>HJ</Initials>
+          </Author>
+        </AuthorList>
+        <ELocationID EIdType="doi">10.1210/clinem/dgad463</ELocationID>
+        <PublicationTypeList>
+          <PublicationType>Practice Guideline</PublicationType>
+        </PublicationTypeList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="doi">10.1210/clinem/dgad463</ArticleId>
+        <ArticleId IdType="pubmed">37580314</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>38637590</PMID>
+      <Article>
+        <Journal>
+          <Title>Nature Reviews Disease Primers</Title>
+          <JournalIssue>
+            <PubDate>
+              <Year>2024</Year>
+              <Month>Apr</Month>
+              <Day>18</Day>
+            </PubDate>
+          </JournalIssue>
+        </Journal>
+        <ArticleTitle>Polycystic ovary syndrome.</ArticleTitle>
+        <Abstract>
+          <AbstractText>PCOS is a heterogeneous endocrine-metabolic condition. Management is symptomatic. No disease-modifying cure is established.</AbstractText>
+        </Abstract>
+        <AuthorList>
+          <Author>
+            <LastName>Stener-Victorin</LastName>
+            <Initials>E</Initials>
+          </Author>
+        </AuthorList>
+        <ELocationID EIdType="doi">10.1038/s41572-024-00511-3</ELocationID>
+        <PublicationTypeList>
+          <PublicationType>Review</PublicationType>
+        </PublicationTypeList>
+      </Article>
+    </MedlineCitation>
+  </PubmedArticle>
+</PubmedArticleSet>
