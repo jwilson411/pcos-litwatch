@@ -20,7 +20,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<9", "ruff>=0.8,<1"]
+dev = ["pytest>=8,<10", "ruff>=0.8,<1"]
 postgres = ["psycopg2-binary>=2.9"]
 
 [project.scripts]
