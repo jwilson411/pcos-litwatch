@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import Iterable
+from collections.abc import Iterable
 
-from .http import encode_query, get_json, get_bytes, sleep_polite
+from .http import encode_query, get_bytes, get_json, sleep_polite
 from .record import Record
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
