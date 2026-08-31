@@ -13,24 +13,27 @@ def collect(pubmed_n: int = 40, trial_n: int = 20, arxiv_n: int = 15) -> tuple[l
     records: list[Record] = []
     errors: list[str] = []
 
-    try:
-        records.extend(fetch_pubmed(retmax=pubmed_n))
-    except Exception as e:
-        errors.append(f"pubmed:{type(e).__name__}:{e}")
+    if pubmed_n:
+        try:
+            records.extend(fetch_pubmed(retmax=pubmed_n))
+        except Exception as e:
+            errors.append(f"pubmed:{type(e).__name__}:{e}")
 
     sleep_polite(0.5)
 
-    try:
-        records.extend(fetch_trials(page_size=trial_n))
-    except Exception as e:
-        errors.append(f"trials:{type(e).__name__}:{e}")
+    if trial_n:
+        try:
+            records.extend(fetch_trials(page_size=trial_n))
+        except Exception as e:
+            errors.append(f"trials:{type(e).__name__}:{e}")
 
     sleep_polite(0.5)
 
-    try:
-        records.extend(fetch_arxiv(max_results=arxiv_n))
-    except Exception as e:
-        errors.append(f"arxiv:{type(e).__name__}:{e}")
+    if arxiv_n:
+        try:
+            records.extend(fetch_arxiv(max_results=arxiv_n))
+        except Exception as e:
+            errors.append(f"arxiv:{type(e).__name__}:{e}")
 
     seen: set[tuple[str, str]] = set()
     unique: list[Record] = []
