@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import __version__
@@ -25,6 +26,13 @@ def main(argv: list[str] | None = None) -> int:
         if n < 0:
             print(f"pcos-litwatch: {flag} must be >= 0 (got {n})", file=sys.stderr)
             return 2
+
+    if args.store and not (os.environ.get("HERMES_DATABASE_URL") or os.environ.get("DATABASE_URL")):
+        print(
+            "pcos-litwatch: --store requires a database DSN; set HERMES_DATABASE_URL or DATABASE_URL",
+            file=sys.stderr,
+        )
+        return 2
 
     records, errors = collect(pubmed_n=args.pubmed, trial_n=args.trials, arxiv_n=args.arxiv)
     stats = {
