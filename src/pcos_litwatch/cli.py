@@ -21,6 +21,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--quiet", action="store_true", help="Do not print records")
     args = p.parse_args(argv)
 
+    for flag, n in (("--pubmed", args.pubmed), ("--trials", args.trials), ("--arxiv", args.arxiv)):
+        if n < 0:
+            print(f"pcos-litwatch: {flag} must be >= 0 (got {n})", file=sys.stderr)
+            return 2
+
     records, errors = collect(pubmed_n=args.pubmed, trial_n=args.trials, arxiv_n=args.arxiv)
     stats = {
         "n": len(records),
